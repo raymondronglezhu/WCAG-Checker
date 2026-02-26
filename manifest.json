@@ -1,0 +1,11 @@
+{
+  "name": "WCAG Contrast Checker",
+  "id": "wcag-contrast-checker",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "main": "code.js",
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}

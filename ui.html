@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WCAG Contrast Checker</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f6f8;
+        color: #172032;
+      }
+
+      .app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100vh;
+      }
+
+      .topbar {
+        padding: 14px;
+        background: #ffffff;
+        border-bottom: 1px solid #d9dbe3;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: #596580;
+      }
+
+      .toolbar-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .toggle-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #39455f;
+        user-select: none;
+      }
+
+      .toggle-wrap input {
+        width: 14px;
+        height: 14px;
+      }
+
+      .content {
+        overflow-y: auto;
+        padding: 12px;
+      }
+
+      .status {
+        margin: 0 0 10px;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .status.error {
+        background: #fff0f0;
+        color: #8f1d1d;
+        border: 1px solid #f1c7c7;
+      }
+
+      .status.info {
+        background: #eef3ff;
+        color: #1c3b86;
+        border: 1px solid #c8d6ff;
+      }
+
+      .status.warn {
+        background: #fff7e8;
+        color: #7d4e00;
+        border: 1px solid #f2d6a4;
+      }
+
+      .status.success {
+        background: #e9f8ed;
+        color: #175d2a;
+        border: 1px solid #b8e3c3;
+      }
+
+      .section {
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #172032;
+      }
+
+      .section-summary {
+        cursor: pointer;
+        list-style: none;
+        font-size: 12px;
+        font-weight: 700;
+        color: #172032;
+        user-select: none;
+      }
+
+      .section-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .section-summary::before {
+        content: '▶';
+        margin-right: 6px;
+        font-size: 10px;
+      }
+
+      details[open] > .section-summary::before {
+        content: '▼';
+      }
+
+      .section-body {
+        margin-top: 8px;
+      }
+
+      .section-empty {
+        font-size: 12px;
+        color: #596580;
+      }
+
+      .cards {
+        display: grid;
+        gap: 10px;
+      }
+
+      .card {
+        background: #ffffff;
+        border: 1px solid #dce1ec;
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+      }
+
+      .card.problem {
+        border-color: #f0b3b3;
+        background: #fff9f9;
+      }
+
+      .card:hover,
+      .card.hovering {
+        border-color: #b4c1df;
+        background: #f6f8fc;
+        box-shadow: inset 0 0 0 1px #e6ebf5;
+      }
+
+      .card.problem:hover,
+      .card.problem.hovering {
+        border-color: #e8c0c0;
+        background: #fff4f4;
+        box-shadow: inset 0 0 0 1px #f6dede;
+      }
+
+      .card.active {
+        border-color: #2d6cff;
+        box-shadow: 0 0 0 2px rgba(45, 108, 255, 0.18);
+      }
+
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 13px;
+      }
+
+      .card-path {
+        margin: -4px 0 10px;
+        font-size: 11px;
+        color: #596580;
+        line-height: 1.35;
+        word-break: break-word;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .label {
+        font-size: 11px;
+        color: #596580;
+      }
+
+      .color-value {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-family: Menlo, Consolas, monospace;
+        min-height: 24px;
+      }
+
+      .swatch {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid #c5cbdb;
+        background: transparent;
+        flex: 0 0 auto;
+      }
+
+      .meta {
+        font-size: 11px;
+        color: #596580;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: -2px 0 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid #cfd5e3;
+        background: #f3f5fa;
+        color: #39455f;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .badge.masked,
+      .badge.multi-mask {
+        background: #fff5df;
+        border-color: #f0cf91;
+        color: #7a4c00;
+      }
+
+      .badge.clipped {
+        background: #eef3ff;
+        border-color: #c8d6ff;
+        color: #1c3b86;
+      }
+
+      .badge.surface-audit {
+        background: #f0f7ff;
+        border-color: #9ec6ff;
+        color: #1f4f95;
+      }
+
+      .warning-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .warning-list li {
+        margin-top: 4px;
+        font-size: 11px;
+        color: #8a5a00;
+      }
+
+      .score-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+      }
+
+      .score-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 82px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid transparent;
+      }
+
+      .score-chip.fail {
+        background: #ffe9e9;
+        color: #8f1d1d;
+        border-color: #f3b7b7;
+      }
+
+      .score-chip.aa-large {
+        background: #fff5df;
+        color: #7a4c00;
+        border-color: #f0cf91;
+      }
+
+      .score-chip.aa {
+        background: #ebf7e9;
+        color: #1f6b1d;
+        border-color: #bce2b5;
+      }
+
+      .score-chip.aaa {
+        background: #ddf5f2;
+        color: #08594d;
+        border-color: #a9dfd6;
+      }
+
+      .score-chip.range {
+        background: #eef3ff;
+        color: #1c3b86;
+        border-color: #c8d6ff;
+      }
+
+      .score-value {
+        font-family: Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .score-empty {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        color: #596580;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <h1 class="title">WCAG Contrast Checker</h1>
+        <p id="frameInfo" class="subtitle">Select a frame to start</p>
+
+        <div class="toolbar-row">
+          <label class="toggle-wrap" for="includeSurfacesToggle">
+            <input id="includeSurfacesToggle" type="checkbox" />
+            Include surfaces
+          </label>
+        </div>
+      </header>
+
+      <section class="content">
+        <div id="status" class="status info">Waiting for analysis...</div>
+        <div id="cards" class="cards"></div>
+      </section>
+    </main>
+
+    <script>
+      const frameInfoEl = document.getElementById('frameInfo');
+      const statusEl = document.getElementById('status');
+      const cardsEl = document.getElementById('cards');
+      const includeSurfacesToggle = document.getElementById('includeSurfacesToggle');
+
+      let focusedNodeId = null;
+      let hoveredNodeId = null;
+      let suppressToggleEvent = false;
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function safeText(value) {
+        return value ? escapeHtml(String(value)) : 'N/A';
+      }
+
+      function formatRatioValue(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric.toFixed(1) : '4.5';
+      }
+
+      function sanitizeBadgeClass(badge) {
+        return String(badge).toLowerCase().replace(/\s+/g, '-');
+      }
+
+      function getContrastDelta(item) {
+        if (!item || !item.contrast) return Number.POSITIVE_INFINITY;
+        const required = typeof item.contrast.requiredRatio === 'number'
+          ? item.contrast.requiredRatio
+          : 4.5;
+        return item.contrast.min - required;
+      }
+
+      function compareBySeverity(a, b) {
+        const deltaA = getContrastDelta(a);
+        const deltaB = getContrastDelta(b);
+
+        if (deltaA !== deltaB) return deltaA - deltaB;
+        return a.contrast.min - b.contrast.min;
+      }
+
+      function renderColorBlock(color, fallbackText) {
+        const text = color && color.hex ? color.hex : fallbackText;
+        const swatchStyle = color && color.css ? `style="background:${color.css}"` : '';
+
+        return `
+          <div class="color-value">
+            <span class="swatch" ${swatchStyle}></span>
+            <span>${safeText(text)}</span>
+          </div>
+        `;
+      }
+
+      function renderScore(item) {
+        if (!item.contrast) {
+          return `<div class="score-empty">No score (missing background).</div>`;
+        }
+
+        const contrast = item.contrast;
+        const rangeText = contrast.rangeText
+          ? `<div class="meta">Range: ${safeText(contrast.rangeText)}:1</div>`
+          : '';
+        const uncertainty = contrast.uncertainAA
+          ? '<div class="meta">Threshold outcome depends on background blending.</div>'
+          : '';
+        const bestEffort = contrast.bestEffort
+          ? '<div class="meta">Best-effort score due to mask approximation.</div>'
+          : '';
+        const ruleLabel = item.ruleLabel || contrast.ruleLabel || 'Fallback AA';
+        const requiredRatio = formatRatioValue(item.requiredRatio || contrast.requiredRatio);
+
+        return `
+          <div class="score-line">
+            <div class="score-chip ${safeText(contrast.level)}">${safeText(contrast.levelLabel)}</div>
+            <div class="score-value">${safeText(contrast.scoreText)}:1</div>
+          </div>
+          <div class="meta">Rule: ${safeText(ruleLabel)} (${safeText(requiredRatio)}:1)</div>
+          ${rangeText}
+          <div class="meta">AA Large: ${contrast.passesAALarge ? 'Pass' : 'Fail'} | AA: ${contrast.passesAA ? 'Pass' : 'Fail'} | AAA: ${contrast.passesAAA ? 'Pass' : 'Fail'}</div>
+          ${bestEffort}
+          ${uncertainty}
+        `;
+      }
+
+      function renderCards(items) {
+        if (!items || items.length === 0) {
+          cardsEl.innerHTML = '';
+          return;
+        }
+
+        const failing = items
+          .filter((item) => item.contrast && item.contrast.isProblematic)
+          .sort(compareBySeverity);
+        const passing = items
+          .filter((item) => item.contrast && !item.contrast.isProblematic)
+          .sort(compareBySeverity);
+        const unscored = items.filter((item) => !item.contrast);
+
+        const renderCardList = (list) =>
+          list
+            .map((item) => {
+              const layerColor = renderColorBlock(item.foreground, item.foregroundNote || 'No color');
+              const bgColor = renderColorBlock(item.background, item.backgroundNote || 'No color');
+              const scoreBlock = renderScore(item);
+              const cardClass = item.contrast && item.contrast.isProblematic ? 'card problem' : 'card';
+              const badges = Array.isArray(item.analysisBadges)
+                ? item.analysisBadges
+                  .map((badge) => `<span class="badge ${sanitizeBadgeClass(badge)}">${safeText(badge)}</span>`)
+                  .join('')
+                : '';
+              const warnings = Array.isArray(item.analysisWarnings) && item.analysisWarnings.length > 0
+                ? `
+                  <ul class="warning-list">
+                    ${item.analysisWarnings.map((warning) => `<li>${safeText(warning)}</li>`).join('')}
+                  </ul>
+                `
+                : '';
+
+              return `
+                <article class="${cardClass}" data-node-id="${safeText(item.id)}">
+                  <h3>${safeText(item.layerName)}</h3>
+                  <div class="card-path">${safeText(item.layerPath || item.layerName)}</div>
+                  ${badges ? `<div class="badges">${badges}</div>` : ''}
+
+                  <div class="row">
+                    <div class="label">Layer color</div>
+                    ${layerColor}
+                    <div class="meta">Type: ${safeText(item.layerType)} | Role: ${safeText(item.pairRole || 'unknown')}</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="label">Background color</div>
+                    ${bgColor}
+                    <div class="meta">From: ${safeText(item.backgroundLayerName)}</div>
+                    ${
+                      item.backgroundLayerPath
+                        ? `<div class="meta">Path: ${safeText(item.backgroundLayerPath)}</div>`
+                        : ''
+                    }
+                  </div>
+
+                  <div class="row">
+                    <div class="label">Contrast score</div>
+                    ${scoreBlock}
+                    ${warnings}
+                  </div>
+                </article>
+              `;
+            })
+            .join('');
+
+        const failedSection = `
+          <section class="section">
+            <h2 class="section-title">Failed (${failing.length})</h2>
+            ${failing.length > 0 ? `<div class="cards">${renderCardList(failing)}</div>` : '<div class="section-empty">No failing layers.</div>'}
+          </section>
+        `;
+
+        const passedSection = `
+          <details class="section">
+            <summary class="section-summary">Passed (${passing.length})</summary>
+            <div class="section-body">
+              ${passing.length > 0 ? `<div class="cards">${renderCardList(passing)}</div>` : '<div class="section-empty">No passing layers.</div>'}
+            </div>
+          </details>
+        `;
+
+        const unscoredSection = unscored.length > 0
+          ? `
+          <details class="section">
+            <summary class="section-summary">Unscored (${unscored.length})</summary>
+            <div class="section-body">
+              <div class="cards">${renderCardList(unscored)}</div>
+            </div>
+          </details>
+        `
+          : '';
+
+        cardsEl.innerHTML = `${failedSection}${passedSection}${unscoredSection}`;
+        setFocusedCard(focusedNodeId);
+      }
+
+      function setFocusedCard(nodeId) {
+        focusedNodeId = nodeId || null;
+
+        cardsEl.querySelectorAll('.card').forEach((cardEl) => {
+          cardEl.classList.remove('active');
+          if (focusedNodeId && cardEl.dataset.nodeId === focusedNodeId) {
+            cardEl.classList.add('active');
+          }
+        });
+      }
+
+      function setHoveredCard(nodeId) {
+        if (!nodeId) return;
+        if (hoveredNodeId === nodeId) return;
+
+        hoveredNodeId = nodeId;
+
+        cardsEl.querySelectorAll('.card').forEach((cardEl) => {
+          const isHovered = cardEl.dataset.nodeId === hoveredNodeId;
+          cardEl.classList.toggle('hovering', isHovered);
+        });
+      }
+
+      function clearHoveredCard() {
+        if (hoveredNodeId !== null || cardsEl.querySelector('.card.hovering')) {
+          cardsEl.querySelectorAll('.card.hovering').forEach((cardEl) => {
+            cardEl.classList.remove('hovering');
+          });
+        }
+
+        hoveredNodeId = null;
+      }
+
+      function setStatus(text, tone) {
+        statusEl.textContent = text;
+        statusEl.className = `status ${tone || 'info'}`;
+      }
+
+      function setIncludeSurfacesState(value) {
+        suppressToggleEvent = true;
+        includeSurfacesToggle.checked = Boolean(value);
+        suppressToggleEvent = false;
+      }
+
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        if (!message) return;
+
+        if (message.type === 'focus-result') {
+          const result = message.payload || {};
+
+          if (!result.ok) {
+            setStatus(`Could not focus layer: ${safeText(result.error || 'Unknown error')}`, 'error');
+            return;
+          }
+
+          setFocusedCard(result.nodeId || null);
+          return;
+        }
+
+        if (message.type !== 'report') return;
+
+        const payload = message.payload || {};
+        const hasError = Boolean(payload.error);
+
+        clearHoveredCard();
+        setIncludeSurfacesState(Boolean(payload.includeSurfaces));
+
+        if (hasError) {
+          frameInfoEl.textContent = 'No frame selected';
+          setStatus(payload.error, 'error');
+          renderCards([]);
+          return;
+        }
+
+        const scoredLayers = payload.scoredLayers || 0;
+        const problematicLayers = payload.problematicLayers || 0;
+        const bestEffortLayers = payload.bestEffortLayers || 0;
+        const hiddenSurfacePairs = payload.hiddenSurfacePairs || 0;
+        const hiddenSameColorLayers = payload.hiddenSameColorLayers || 0;
+        const hiddenCoveredLayers = payload.hiddenCoveredLayers || 0;
+
+        const statusTone = scoredLayers === 0
+          ? 'info'
+          : problematicLayers > 0
+            ? 'warn'
+            : 'success';
+
+        let statusText = scoredLayers === 0
+          ? 'No remaining scorable layers.'
+          : problematicLayers > 0
+            ? `${problematicLayers} failing layer(s) found out of ${scoredLayers} scored.`
+            : `All ${scoredLayers} scored layer(s) pass required thresholds.`;
+
+        if (hiddenSurfacePairs > 0 || hiddenSameColorLayers > 0 || hiddenCoveredLayers > 0) {
+          statusText += ` Hidden: ${hiddenSurfacePairs} surface pair(s), ${hiddenSameColorLayers} identical pair(s), ${hiddenCoveredLayers} fully-covered layer(s).`;
+        }
+
+        if (bestEffortLayers > 0) {
+          statusText += ` ${bestEffortLayers} layer(s) used best-effort mask approximation.`;
+        }
+
+        frameInfoEl.textContent = `${safeText(payload.frameName)} (${payload.totalLayers || 0} visible color layers)`;
+        setStatus(statusText, statusTone);
+        renderCards(payload.items || []);
+      };
+
+      includeSurfacesToggle.addEventListener('change', () => {
+        if (suppressToggleEvent) return;
+
+        clearHoveredCard();
+        parent.postMessage({
+          pluginMessage: {
+            type: 'set-include-surfaces',
+            includeSurfaces: includeSurfacesToggle.checked
+          }
+        }, '*');
+      });
+
+      cardsEl.addEventListener('click', (event) => {
+        const cardEl = event.target.closest('.card[data-node-id]');
+        if (!cardEl) return;
+
+        const nodeId = cardEl.dataset.nodeId;
+        if (!nodeId) return;
+
+        clearHoveredCard();
+        setFocusedCard(nodeId);
+        parent.postMessage({ pluginMessage: { type: 'focus-layer', nodeId } }, '*');
+      });
+
+      cardsEl.addEventListener('mouseover', (event) => {
+        const cardEl = event.target.closest('.card[data-node-id]');
+        if (!cardEl || !cardsEl.contains(cardEl)) return;
+
+        const related = event.relatedTarget;
+        if (related instanceof Element && cardEl.contains(related)) return;
+
+        const nodeId = cardEl.dataset.nodeId;
+        if (!nodeId) return;
+        setHoveredCard(nodeId);
+      });
+
+      cardsEl.addEventListener('mouseout', (event) => {
+        const cardEl = event.target.closest('.card[data-node-id]');
+        if (!cardEl || !cardsEl.contains(cardEl)) return;
+
+        const related = event.relatedTarget;
+        if (related instanceof Element && cardEl.contains(related)) return;
+
+        const relatedCard = related instanceof Element
+          ? related.closest('.card[data-node-id]')
+          : null;
+
+        if (relatedCard && cardsEl.contains(relatedCard)) return;
+        clearHoveredCard();
+      });
+
+      cardsEl.addEventListener('mouseleave', () => {
+        clearHoveredCard();
+      });
+    </script>
+  </body>
+</html>
